@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  real-route-ip:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: real-route-ip
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./runtime_config.json:/app/runtime_config.json
+      - ./ip_cache.json:/app/ip_cache.json

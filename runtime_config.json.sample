@@ -1,0 +1,18 @@
+{
+  "router_base_url": "http://192.168.68.1",
+  "api_path": "/jdcapi",
+  "username": "root",
+  "password": "1008610086",
+  "session_timeout": 600,
+  "request_timeout": 10.0,
+  "verify_ssl": false,
+  "login_service": "session",
+  "login_method": "login",
+  "wan_service": "jdcapi.static",
+  "wan_method": "get_wan_info",
+  "ip_path": "pppoe_info.ipaddr",
+  "auto_refresh_enabled": true,
+  "auto_refresh_interval_minutes": 30,
+  "headers": {},
+  "cookies": {}
+}

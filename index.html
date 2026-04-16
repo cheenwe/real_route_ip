@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>路由器真实 IP 获取</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card-bg: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #dce3ee;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --warn: #b45309;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #eef4ff 0%, var(--bg) 280px);
+      font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+      background: var(--card-bg);
+      box-shadow: 0 8px 22px rgba(26, 54, 93, 0.08);
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .top-grid .card {
+      margin-bottom: 0;
+    }
+
+    h3 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    h4 {
+      margin: 14px 0 8px;
+      font-size: 14px;
+      color: #334155;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    label {
+      color: #334155;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    input,
+    textarea,
+    button {
+      font-size: 14px;
+      border-radius: 8px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.35);
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+      padding: 9px 14px;
+      background: #e5e7eb;
+      color: #111827;
+      transition: transform .08s ease, background-color .2s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-warn {
+      background: #fef3c7;
+      color: var(--warn);
+    }
+
+    #output,
+    #debug {
+      white-space: pre-wrap;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      min-height: 44px;
+    }
+
+    #debug {
+      height: 260px;
+      overflow-y: auto;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .doc-list {
+      margin: 0;
+      padding-left: 18px;
+      color: #334155;
+      font-size: 14px;
+    }
+
+    .doc-list li {
+      margin: 6px 0;
+    }
+
+    .code-inline {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: #eef2ff;
+      border: 1px solid #dbe4ff;
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: 13px;
+      color: #1e3a8a;
+    }
+
+    @media (max-width: 760px) {
+      .top-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      label {
+        margin-bottom: -4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>路由器真实 IP 获取工具</h1>
+    <p class="subtitle">在线配置路由器参数，默认从本地缓存读取，后台自动刷新公网 IP。</p>
+
+    <div class="top-grid">
+      <div class="card">
+        <h3>获取真实 IP</h3>
+        <div class="actions">
+          <button class="btn-primary" onclick="fetchIp(false)">获取 IP（缓存）</button>
+          <button onclick="fetchIp(true)">调试模式获取（实时）</button>
+        </div>
+        <h4>结果</h4>
+        <div id="output">等待调用...</div>
+        <h4>调试信息</h4>
+        <div id="debug">无</div>
+      </div>
+
+      <div class="card">
+        <h3>使用说明</h3>
+        <ol class="doc-list">
+          <li>先在“在线配置”中填写路由器参数并保存，建议开启自动刷新。</li>
+          <li>普通“获取 IP”默认读取本地缓存 JSON，减少对路由器请求。</li>
+          <li>调试模式会实时访问路由器并更新缓存，便于排查登录/解析问题。</li>
+          <li>默认 JSON 接口：<span class="code-inline">GET /api/ip</span>。</li>
+          <li>ddns-go 推荐接口：<span class="code-inline">GET /api/ddns-go/ip</span>（纯文本 IP）。</li>
+          <li>缓存查看接口：<span class="code-inline">GET /api/ip/cache</span>。</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+    <h3>在线配置</h3>
+    <div class="row"><label>router_base_url</label><input id="router_base_url" /></div>
+    <div class="row"><label>api_path</label><input id="api_path" /></div>
+    <div class="row"><label>username</label><input id="username" /></div>
+    <div class="row"><label>password</label><input id="password" /></div>
+    <div class="row"><label>session_timeout</label><input id="session_timeout" type="number" /></div>
+    <div class="row"><label>request_timeout</label><input id="request_timeout" type="number" step="0.1" /></div>
+    <div class="row">
+      <label>verify_ssl</label>
+      <div class="checkbox-wrap">
+        <input id="verify_ssl" type="checkbox" style="width:18px;height:18px;" />
+        <span>启用 SSL 证书校验</span>
+      </div>
+    </div>
+    <div class="row"><label>login_service</label><input id="login_service" /></div>
+    <div class="row"><label>login_method</label><input id="login_method" /></div>
+    <div class="row"><label>wan_service</label><input id="wan_service" /></div>
+    <div class="row"><label>wan_method</label><input id="wan_method" /></div>
+    <div class="row"><label>ip_path</label><input id="ip_path" /></div>
+    <div class="row">
+      <label>auto_refresh_enabled</label>
+      <div class="checkbox-wrap">
+        <input id="auto_refresh_enabled" type="checkbox" style="width:18px;height:18px;" />
+        <span>启用自动刷新并写入本地缓存 JSON</span>
+      </div>
+    </div>
+    <div class="row">
+      <label>自动获取间隔(分钟)</label>
+      <div>
+        <input id="auto_refresh_interval_minutes" type="number" min="1" />
+        <div class="hint">自动获取间隔，单位分钟，最小 1 分钟。</div>
+      </div>
+    </div>
+    <div class="row">
+      <label>headers(JSON)</label>
+      <div>
+        <textarea id="headers"></textarea>
+        <div class="hint">示例: {"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"}</div>
+      </div>
+    </div>
+    <div class="row">
+      <label>cookies(JSON)</label>
+      <div>
+        <textarea id="cookies"></textarea>
+        <div class="hint">示例: {"HostAddrIP":"192.168.68.1","model":"RE-SS-02"}</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" onclick="saveConfig()">保存配置</button>
+      <button class="btn-warn" onclick="resetConfig()">重置默认</button>
+      <button onclick="loadConfig()">重新加载</button>
+    </div>
+    </div>
+  </div>
+
+  <script>
+    const fields = [
+      "router_base_url", "api_path", "username", "password",
+      "session_timeout", "request_timeout", "verify_ssl",
+      "login_service", "login_method", "wan_service", "wan_method", "ip_path",
+      "auto_refresh_enabled", "auto_refresh_interval_minutes"
+    ];
+
+    function parseJsonField(id) {
+      const value = document.getElementById(id).value.trim();
+      if (!value) return {};
+      try {
+        return JSON.parse(value);
+      } catch (err) {
+        throw new Error(`${id} 不是合法 JSON: ${err}`);
+      }
+    }
+
+    function configFromForm() {
+      return {
+        router_base_url: document.getElementById("router_base_url").value.trim(),
+        api_path: document.getElementById("api_path").value.trim(),
+        username: document.getElementById("username").value.trim(),
+        password: document.getElementById("password").value,
+        session_timeout: Number(document.getElementById("session_timeout").value),
+        request_timeout: Number(document.getElementById("request_timeout").value),
+        verify_ssl: document.getElementById("verify_ssl").checked,
+        login_service: document.getElementById("login_service").value.trim(),
+        login_method: document.getElementById("login_method").value.trim(),
+        wan_service: document.getElementById("wan_service").value.trim(),
+        wan_method: document.getElementById("wan_method").value.trim(),
+        ip_path: document.getElementById("ip_path").value.trim(),
+        auto_refresh_enabled: document.getElementById("auto_refresh_enabled").checked,
+        auto_refresh_interval_minutes: Number(document.getElementById("auto_refresh_interval_minutes").value || 1),
+        headers: parseJsonField("headers"),
+        cookies: parseJsonField("cookies")
+      };
+    }
+
+    function fillForm(config) {
+      const intervalMinutes = config.auto_refresh_interval_minutes
+        ?? Math.max(1, Math.floor((config.auto_refresh_interval_seconds || 60) / 60));
+      fields.forEach((key) => {
+        const el = document.getElementById(key);
+        if (key === "verify_ssl" || key === "auto_refresh_enabled") {
+          el.checked = Boolean(config[key]);
+        } else if (key === "auto_refresh_interval_minutes") {
+          el.value = intervalMinutes;
+        } else {
+          el.value = config[key] ?? "";
+        }
+      });
+      document.getElementById("headers").value = JSON.stringify(config.headers || {}, null, 2);
+      document.getElementById("cookies").value = JSON.stringify(config.cookies || {}, null, 2);
+    }
+
+    async function loadConfig() {
+      const resp = await fetch("/api/config");
+      const data = await resp.json();
+      fillForm(data);
+    }
+
+    async function saveConfig() {
+      try {
+        const payload = configFromForm();
+        const resp = await fetch("/api/config", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(JSON.stringify(data));
+        document.getElementById("output").textContent = "配置已保存";
+      } catch (err) {
+        document.getElementById("output").textContent = `保存失败: ${err}`;
+      }
+    }
+
+    async function resetConfig() {
+      const resp = await fetch("/api/config/reset", { method: "POST" });
+      const data = await resp.json();
+      if (resp.ok) {
+        fillForm(data.config);
+        document.getElementById("output").textContent = "配置已重置为默认值";
+      } else {
+        document.getElementById("output").textContent = `重置失败: ${JSON.stringify(data)}`;
+      }
+    }
+
+    async function fetchIp(debug) {
+      document.getElementById("output").textContent = "请求中...";
+      document.getElementById("debug").textContent = "等待调试输出...";
+      const resp = await fetch(`/api/ip?debug=${debug}`);
+      const data = await resp.json();
+      if (!resp.ok) {
+        document.getElementById("output").textContent = `失败: ${JSON.stringify(data)}`;
+        document.getElementById("debug").textContent = "无";
+        return;
+      }
+      document.getElementById("output").textContent = JSON.stringify({
+        ip: data.ip,
+        source: data.source || "unknown",
+        cache: data.cache || {}
+      }, null, 2);
+      document.getElementById("debug").textContent = debug && data.debug ? JSON.stringify(data.debug, null, 2) : "无";
+    }
+
+    loadConfig();
+  </script>
+</body>
+</html>
